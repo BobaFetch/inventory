@@ -17,7 +17,6 @@ async function addInventory(pool, part) {
     const lotUser = 'AR';
     
     try {
-        setTimeout(() => console.log('wait'), 300)
         await updateLohdTable(pool, part, lotNumber, dateRef)
             // .then(await updateLoitTable(pool, part, lotNumber, dateRef))
             // .then(await updateInvaTable(pool, part, lotNumber, dateRef));
