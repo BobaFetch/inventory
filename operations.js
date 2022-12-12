@@ -28,7 +28,7 @@ async function transferData(dataFile) {
             .then((res) => res.recordset[0].INNUMBER + 1);
         let transferCount = inNumber
 
-        // grab csv of data from old MRP system
+        // read csv from old MRP system
         fs.createReadStream(dataFile)
             .pipe(parse({delimiter: ',', from_line: 2}))
             .on('data', async (row) => {
@@ -36,7 +36,6 @@ async function transferData(dataFile) {
                 const tempPart = new Part(row[0], row[1], row[2], row[3], row[5], transferCount)
                 transferCount++;
 
-                // insert part into parttable if not exists
                 await pool.query(`SELECT COUNT(PARTREF) AS count FROM PartTable WHERE PARTREF = '${tempPart.paRef}'`)
                     .then((res) => res.recordset[0].count === 1 ? null : addNewPart(pool, tempPart)).then(() => addInventory(pool, tempPart))
                     .catch((err) => console.log(err.message))
@@ -52,18 +51,21 @@ async function transferData(dataFile) {
     }
 }
 
+// remove hyphen from part number
 function stripChars(strIn) {
     const strOut = strIn.replace(/(?<=[a-zA-Z0-9])-(?=[a-zA-Z0-9])/g, '')
     
     return strOut
 }
 
+// convert price string to float
 function getCost(strIn) {
     const price = strIn.replace(/[^0-9\.]/, '')
     console.log(price)
     return parseFloat(price);
 }
 
+// strip box 'B' from location string
 function stripBox(strIn) {
     const spread = strIn.split('');
 
