@@ -37,12 +37,13 @@ async function transferData(dataFile) {
                 transferCount++;
 
                 // insert part into parttable if not exists
-                await sql.query(`SELECT COUNT(PARTREF) AS count FROM PartTable WHERE PARTREF = '${tempPart.paRef}'`)
+                await pool.query(`SELECT COUNT(PARTREF) AS count FROM PartTable WHERE PARTREF = '${tempPart.paRef}'`)
                     .then((res) => res.recordset[0].count === 1 ? null : addNewPart(pool, tempPart)).then(() => addInventory(pool, tempPart))
                     .catch((err) => console.log(err.message))
             })
             .on('end', () => {
-                console.log(`Successfully transferred ${transferCount} lines of data`)
+                console.log(`Finished`)
+                pool.close()
             })
             .on('error', (error) => console.log(error.message))
 
