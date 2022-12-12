@@ -43,7 +43,7 @@ async function transferData(dataFile) {
             })
             .on('end', () => {
                 console.log(`Finished`)
-                pool.close()
+                // pool.close()
             })
             .on('error', (error) => console.log(error.message))
 
