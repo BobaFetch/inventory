@@ -4,16 +4,17 @@ const sql = require('mssql');
 const config = require('./config');
 
 const { addNewPart, addInventory } = require('./queries.js')
+const { convertLocation, getCost, partExists, stripHyphen } = require('./utilties')
 
 class Part {
     constructor(paPB, paNumber, paQty, paLocation, paDA, inNumber) {
         this.paPB = paPB;
-        this.paRef = stripChars(paNumber);
+        this.paRef = stripHyphen(paNumber);
         this.paNumber = paNumber;
         this.paLevel = paDA === '' ? 3 : 1;
         this.paCode = paDA === '' ? 'PRD' : 'TOP';
         this.paClass = paDA === '' ? 'DETL' : 'SELL';
-        this.paLocation = stripBox(paLocation);
+        this.paLocation = convertLocation(paLocation);
         this.paQty = paQty;
         this.paCost = paDA === '' ? 0.0000 : getCost(paDA);
         this.inNumber = inNumber
@@ -28,54 +29,29 @@ async function transferData(dataFile) {
             .then((res) => res.recordset[0].INNUMBER + 1);
         let transferCount = inNumber
 
-        // read csv from old MRP system
+        // grab inventory from old mrp system
         fs.createReadStream(dataFile)
             .pipe(parse({delimiter: ',', from_line: 2}))
             .on('data', async (row) => {
 
                 const tempPart = new Part(row[0], row[1], row[2], row[3], row[5], transferCount)
-                transferCount++;
 
-                await pool.query(`SELECT COUNT(PARTREF) AS count FROM PartTable WHERE PARTREF = '${tempPart.paRef}'`)
-                    .then((res) => res.recordset[0].count === 1 ? null : addNewPart(pool, tempPart)).then(() => addInventory(pool, tempPart))
-                    .catch((err) => console.log(err.message))
+                const isThisPartAlreadyInDB = await partExists(pool, tempPart.paRef);
+
+                if (!isThisPartAlreadyInDB) {
+                    await addNewPart(pool, tempPart)
+                }
+
+                await addInventory(pool, tempPart)
             })
             .on('end', () => {
-                console.log(`Finished`)
-                // pool.close()
+                // do something here? dance? 
             })
             .on('error', (error) => console.log(error.message))
 
     } catch (err) {
         throw new Error(err)
     }
-}
-
-// remove hyphen from part number
-function stripChars(strIn) {
-    const strOut = strIn.replace(/(?<=[a-zA-Z0-9])-(?=[a-zA-Z0-9])/g, '')
-    
-    return strOut
-}
-
-// convert price string to float
-function getCost(strIn) {
-    const price = strIn.replace(/[^0-9\.]/, '')
-    console.log(price)
-    return parseFloat(price);
-}
-
-// strip box 'B' from location string
-function stripBox(strIn) {
-    const spread = strIn.split('');
-
-    for (let i = 1; i < spread.length; i++) {
-        if (spread[i] === 'B' || spread[i] === 'b') {
-            spread.splice(i, 1);
-        }
-    }
-
-    return spread.join('');
 }
 
 transferData('../../sampleData.csv')
