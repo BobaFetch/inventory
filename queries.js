@@ -1,35 +1,35 @@
 
 async function addNewPart(pool, part) {
     await pool.query(`
-      INSERT INTO PartTable 
-      (
-        PARTREF, 
-        PARTNUM, 
-        PALEVEL, 
-        PAMAKEBUY, 
-        PAPRODCODE, 
-        PACLASS, 
-        PAONDOCK, 
-        PALOTTRACK, 
-        PAAVGCOST, 
-        PAUNITS, 
-        PAPUNITS, 
-        PAPURCONV
-      )
-      VALUES
-        '${part.paRef}', 
-        '${part.paNumber}', 
-        '${part.paLevel}', 
-        'M', 
-        '${part.paCode}', 
-        '${part.paClass}', 
-        0, 
-        1, 
-        ${part.paCost}, 
-        'EA', 
-        'EA', 
-        1.0000
-      );
+        INSERT INTO PartTable 
+        (
+            PARTREF, 
+            PARTNUM, 
+            PALEVEL, 
+            PAMAKEBUY, 
+            PAPRODCODE, 
+            PACLASS, 
+            PAONDOCK, 
+            PALOTTRACK, 
+            PAAVGCOST, 
+            PAUNITS, 
+            PAPUNITS, 
+            PAPURCONV
+        )
+        VALUES
+            '${part.paRef}', 
+            '${part.paNumber}', 
+            '${part.paLevel}', 
+            'M', 
+            '${part.paCode}', 
+            '${part.paClass}', 
+            0, 
+            1, 
+            ${part.paCost}, 
+            'EA', 
+            'EA', 
+            1.0000
+        );
     `);
 }
 
@@ -38,7 +38,6 @@ async function addInventory(pool, part) {
     const lotNumber = createLotNumber(dateRef)
     
     try {
-        console.log(part)
         await updateLohdTable(pool, part, lotNumber, dateRef);
         await updateLoitTable(pool, part, lotNumber, dateRef);
         await updateInvaTable(pool, part, lotNumber, dateRef);
@@ -48,41 +47,36 @@ async function addInventory(pool, part) {
 }
 
 async function updateLohdTable(pool, part, lotRef, dateRef) {
-        const duplicateLotNumber = await checkLotNumber(pool, part.paPB)
-        if (duplicateLotNumber) {
-            return;
-        } else {
-            await pool.query(`
-            INSERT INTO LohdTable
-            (
-                LOTNUMBER, 
-                LOTUSERLOTID, 
-                LOTUNITCOST, 
-                LOTPARTREF, 
-                LOTCOMMENTS, 
-                LOTPDATE, 
-                LOTORIGINALQTY, 
-                LOTREMAININGQTY, 
-                LOTLOCATION, 
-                LOTUSER, 
-                LOTTOTLABOR
-            )
-            VALUES 
-            (
-                '${lotRef}', 
-                '${part.paPB}', 
-                '${part.paCost}', 
-                '${part.paRef}', 
-                'NEEDS REVIEW', 
-                CAST('${dateRef.toLocaleDateString()}' AS smalldatetime), 
-                ${part.paQty}, 
-                ${part.paQty}, 
-                '${part.paLocation}', 
-                'AR', 
-                ${part.paQty * part.paCost}
-            )
-            `)
-        }
+    await pool.query(`
+        INSERT INTO LohdTable
+        (
+            LOTNUMBER, 
+            LOTUSERLOTID, 
+            LOTUNITCOST, 
+            LOTPARTREF, 
+            LOTCOMMENTS, 
+            LOTPDATE, 
+            LOTORIGINALQTY, 
+            LOTREMAININGQTY, 
+            LOTLOCATION, 
+            LOTUSER, 
+            LOTTOTLABOR
+        )
+        VALUES 
+        (
+            '${lotRef}', 
+            '${part.paPB}', 
+            '${part.paCost}', 
+            '${part.paRef}', 
+            'NEEDS REVIEW', 
+            CAST('${dateRef.toLocaleDateString()}' AS smalldatetime), 
+            ${part.paQty}, 
+            ${part.paQty}, 
+            '${part.paLocation}', 
+            'AR', 
+            ${part.paQty * part.paCost}
+         )
+    `)
 }
 
 async function updateLoitTable(pool, part, lotRef, dateRef) {
@@ -170,7 +164,7 @@ async function updateInvaTable(pool, part, lotRef, dateRef) {
             '${lotRef}', 
             'AR'
         )
-    `), 
+    `)
 }
 
 function createLotNumber(dateRef) {
@@ -180,14 +174,6 @@ function createLotNumber(dateRef) {
     epoch.splice(12, 0, '-');
 
     return epoch.join('');
-}
-
-async function checkLotNumber(pool, pbNum) {
-    const result = await pool.query(`SELECT COUNT(LOTUSERLOTID) COUNT FROM LohdTable WHERE LOTUSERLOTID = '${pbNum}'`);
-
-    const count = await result.recordset[0].COUNT;
-    return count;
-
 }
 
 module.exports = {

@@ -16,6 +16,8 @@ function convertLocation(loc) {
         return `CB${locNum}`
     } else if (trimLoc.slice(0, 3) === 'arr') {
         return trimLoc.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    } else if (trimLoc === 'tfloor') {
+        return `TFLR`
     } else if (trimLoc.length == 5) {
         return stripBox(trimLoc).toUpperCase();
     } else {

@@ -23,18 +23,26 @@ class Part {
 
 async function transferData(dataFile) {
     try {
-        // connect to database biatch
+        // connect to database
         const pool = await sql.connect(config);
         let inNumber = await pool.query('SELECT TOP 1 INNUMBER FROM InvaTable ORDER BY INNUMBER DESC')
             .then((res) => res.recordset[0].INNUMBER + 1);
         let transferCount = inNumber
 
-        // grab inventory from old mrp system
+        // grab inventory from extract
         fs.createReadStream(dataFile)
             .pipe(parse({delimiter: ',', from_line: 2}))
             .on('data', async (row) => {
 
-                const tempPart = new Part(row[0], row[1], row[2], row[3], row[5], transferCount)
+                // csv format pbln, id, partnum, qty, loc, desc, price
+                const tempPart = new Part(
+                    row[0], 
+                    row[1], 
+                    row[2], 
+                    row[3], 
+                    row[5], 
+                    transferCount
+                )
 
                 const isThisPartAlreadyInDB = await partExists(pool, tempPart.paRef);
 
@@ -45,7 +53,7 @@ async function transferData(dataFile) {
                 await addInventory(pool, tempPart)
             })
             .on('end', () => {
-                // do something here? dance? 
+                // do something here?
             })
             .on('error', (error) => console.log(error.message))
 
